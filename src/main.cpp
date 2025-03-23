@@ -2,7 +2,7 @@
 #include <Adafruit_NeoPixel.h>
 #include <math.h>
 
-#define NUM_PIXELS 200
+#define NUM_PIXELS 432
 #define LED_PIN D6
 
 // Knob to Pin mapping
@@ -21,7 +21,7 @@
 #define KNOB_MAX_VAL 4095
 #define KNOB_MID_VAL ((KNOB_MAX_VAL - KNOB_MIN_VAL) / 2)
 
-#define CHANGE_THRESHOLD 0.02 // only update param if changes by this fraction of max
+#define CHANGE_THRESHOLD 0.01 // only update param if changes by this fraction of max
 #define THRESHOLD_WAVELN 1
 
 #define SPEED_ZERO_RANGE 100 // range around mid knob value that is considered 0
@@ -201,9 +201,9 @@ void loop() {
   pixels.show();
 
   // DEBUG
-  static uint32_t debug_timer = millis();
-  if (millis() - debug_timer > 500) {
-    debug_print_params();
-    debug_timer = millis();
-  }
+  // static uint32_t debug_timer = millis();
+  // if (millis() - debug_timer > 500) {
+  //   debug_print_params();
+  //   debug_timer = millis();
+  // }
 }
