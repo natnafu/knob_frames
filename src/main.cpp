@@ -24,20 +24,22 @@
 #define CHANGE_THRESHOLD 0.01 // only update param if changes by this fraction of max
 #define THRESHOLD_WAVELN 1
 
-// Smoothing factor (0.0 to 1.0)
+// Smoothing factors (0.0 to 1.0)
 // Lower values = smoother transitions but slower response
 // Higher values = faster response but less smooth
-#define SMOOTHING_FACTOR 0.1
+#define SPEED_SMOOTHING_FACTOR 0.01     // Faster response for speed
+#define WAVELN_SMOOTHING_FACTOR 1    // Slower transitions for wavelength
+#define BRIGHTNESS_SMOOTHING_FACTOR 1 // Medium speed for brightness
 
 #define SPEED_ZERO_RANGE 100 // range around mid knob value that is considered 0
 
 // speed limits in units led/s
 #define SPEED_MIN 0
-#define SPEED_MAX 0.5
+#define SPEED_MAX 1
 
 // wavelength limits in units leds
 #define WAVELN_MIN 0
-#define WAVELN_MAX 200
+#define WAVELN_MAX 400
 
 #define BRIGHTNESS_MAX 1
 
@@ -144,31 +146,31 @@ void update_params() {
   // Smoothly transition current values toward target values
   // Speed transitions need special handling for phase continuity
   double old_speed = red.speed;
-  red.speed = smooth_value(red.speed, red.target_speed, SMOOTHING_FACTOR);
+  red.speed = smooth_value(red.speed, red.target_speed, SPEED_SMOOTHING_FACTOR);
   if (old_speed != red.speed) {
     red.speed_changed_us = micros();
   }
 
   old_speed = grn.speed;
-  grn.speed = smooth_value(grn.speed, grn.target_speed, SMOOTHING_FACTOR);
+  grn.speed = smooth_value(grn.speed, grn.target_speed, SPEED_SMOOTHING_FACTOR);
   if (old_speed != grn.speed) {
     grn.speed_changed_us = micros();
   }
 
   old_speed = blu.speed;
-  blu.speed = smooth_value(blu.speed, blu.target_speed, SMOOTHING_FACTOR);
+  blu.speed = smooth_value(blu.speed, blu.target_speed, SPEED_SMOOTHING_FACTOR);
   if (old_speed != blu.speed) {
     blu.speed_changed_us = micros();
   }
 
-  // Smooth wavelength and brightness transitions
-  red.waveln = smooth_value(red.waveln, red.target_waveln, SMOOTHING_FACTOR);
-  grn.waveln = smooth_value(grn.waveln, grn.target_waveln, SMOOTHING_FACTOR);
-  blu.waveln = smooth_value(blu.waveln, blu.target_waveln, SMOOTHING_FACTOR);
+  // Smooth wavelength and brightness transitions with their specific smoothing factors
+  red.waveln = smooth_value(red.waveln, red.target_waveln, WAVELN_SMOOTHING_FACTOR);
+  grn.waveln = smooth_value(grn.waveln, grn.target_waveln, WAVELN_SMOOTHING_FACTOR);
+  blu.waveln = smooth_value(blu.waveln, blu.target_waveln, WAVELN_SMOOTHING_FACTOR);
 
-  red.brightness = smooth_value(red.brightness, red.target_brightness, SMOOTHING_FACTOR);
-  grn.brightness = smooth_value(grn.brightness, grn.target_brightness, SMOOTHING_FACTOR);
-  blu.brightness = smooth_value(blu.brightness, blu.target_brightness, SMOOTHING_FACTOR);
+  red.brightness = smooth_value(red.brightness, red.target_brightness, BRIGHTNESS_SMOOTHING_FACTOR);
+  grn.brightness = smooth_value(grn.brightness, grn.target_brightness, BRIGHTNESS_SMOOTHING_FACTOR);
+  blu.brightness = smooth_value(blu.brightness, blu.target_brightness, BRIGHTNESS_SMOOTHING_FACTOR);
 }
 
 void debug_print_params() {
