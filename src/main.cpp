@@ -51,7 +51,7 @@ struct color {
   double brightness;
   double target_brightness;
   double phase_us;
-  uint32_t speed_changed_us; // saves micros() when speed is changed, 0 if no new change
+  uint32_t target_speed_changed_us; // saves micros() when speed is changed, 0 if no new change
   double last_pos_offset; // Used for smooth phase transitions
 } red, grn, blu;
 
@@ -131,43 +131,41 @@ double smooth_value(double current, double target, double smoothing_factor) {
 // Updates color params based on knobs
 void update_params() {
   // Update target values based on knob positions
-  red.target_speed = calc_speed(R1, red.target_speed);
-  grn.target_speed = calc_speed(R2, grn.target_speed);
-  blu.target_speed = calc_speed(R3, blu.target_speed);
 
+  // Update speed target and note if target changed to adjust phase for continuity
+  double old_target = red.target_speed;
+  red.target_speed = calc_speed(R1, red.target_speed);
+  if (old_target != red.target_speed) {
+    red.target_speed_changed_us = micros();
+  }
+  old_target = grn.target_speed;
+  grn.target_speed = calc_speed(R2, grn.target_speed);
+  if (old_target != grn.target_speed) {
+    grn.target_speed_changed_us = micros();
+  }
+  old_target = blu.target_speed;
+  blu.target_speed = calc_speed(R3, blu.target_speed);
+  if (old_target != blu.target_speed) {
+    blu.target_speed_changed_us = micros();
+  }
+
+  // Update wavelength target
   red.target_waveln = calc_waveln(R4, red.target_waveln);
   grn.target_waveln = calc_waveln(R5, grn.target_waveln);
   blu.target_waveln = calc_waveln(R6, blu.target_waveln);
 
+  // Update brightness target
   red.target_brightness = calc_brightness(R7, red.target_brightness);
   grn.target_brightness = calc_brightness(R8, grn.target_brightness);
   blu.target_brightness = calc_brightness(R9, blu.target_brightness);
 
   // Smoothly transition current values toward target values
-  // Speed transitions need special handling for phase continuity
-  double old_speed = red.speed;
   red.speed = smooth_value(red.speed, red.target_speed, SPEED_SMOOTHING_FACTOR);
-  if (old_speed != red.speed) {
-    red.speed_changed_us = micros();
-  }
-
-  old_speed = grn.speed;
   grn.speed = smooth_value(grn.speed, grn.target_speed, SPEED_SMOOTHING_FACTOR);
-  if (old_speed != grn.speed) {
-    grn.speed_changed_us = micros();
-  }
-
-  old_speed = blu.speed;
   blu.speed = smooth_value(blu.speed, blu.target_speed, SPEED_SMOOTHING_FACTOR);
-  if (old_speed != blu.speed) {
-    blu.speed_changed_us = micros();
-  }
-
-  // Smooth wavelength and brightness transitions with their specific smoothing factors
   red.waveln = smooth_value(red.waveln, red.target_waveln, WAVELN_SMOOTHING_FACTOR);
   grn.waveln = smooth_value(grn.waveln, grn.target_waveln, WAVELN_SMOOTHING_FACTOR);
   blu.waveln = smooth_value(blu.waveln, blu.target_waveln, WAVELN_SMOOTHING_FACTOR);
-
   red.brightness = smooth_value(red.brightness, red.target_brightness, BRIGHTNESS_SMOOTHING_FACTOR);
   grn.brightness = smooth_value(grn.brightness, grn.target_brightness, BRIGHTNESS_SMOOTHING_FACTOR);
   blu.brightness = smooth_value(blu.brightness, blu.target_brightness, BRIGHTNESS_SMOOTHING_FACTOR);
@@ -214,10 +212,10 @@ void setup() {
 
 uint8_t calc_color(color* rgb, int i, uint32_t t) {
   // Handle phase adjustment when speed changes
-  if (rgb->speed_changed_us) {
+  if (rgb->target_speed_changed_us) {
     // Adjust phase to maintain visual continuity
-    rgb->phase_us += t - rgb->speed_changed_us;
-    rgb->speed_changed_us = 0;
+    rgb->phase_us += t - rgb->target_speed_changed_us;
+    rgb->target_speed_changed_us = 0;
   }
 
   // Calculate position based on wavelength and speed
