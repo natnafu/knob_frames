@@ -21,14 +21,11 @@
 #define KNOB_MAX_VAL 4095
 #define KNOB_MID_VAL ((KNOB_MAX_VAL - KNOB_MIN_VAL) / 2)
 
-#define CHANGE_THRESHOLD 0.01 // only update param if changes by this fraction of max
-#define THRESHOLD_WAVELN 1
-
 // Smoothing factors (0.0 to 1.0)
 // Lower values = smoother transitions but slower response
 // Higher values = faster response but less smooth
 #define SPEED_SMOOTHING_FACTOR 0.01     // Faster response for speed
-#define WAVELN_SMOOTHING_FACTOR 1    // Slower transitions for wavelength
+#define WAVELN_SMOOTHING_FACTOR 0.5    // Slower transitions for wavelength
 #define BRIGHTNESS_SMOOTHING_FACTOR 1 // Medium speed for brightness
 
 #define SPEED_ZERO_RANGE 100 // range around mid knob value that is considered 0
@@ -36,12 +33,16 @@
 // speed limits in units led/s
 #define SPEED_MIN 0
 #define SPEED_MAX 1
+#define SPEED_CHANGE_THRESHOLD 0.05 // only update param if changes by this fraction of max
 
 // wavelength limits in units leds
 #define WAVELN_MIN 0
 #define WAVELN_MAX 400
+#define WAVELN_THRESHOLD 1 // only change by whole number of leds
 
 #define BRIGHTNESS_MAX 1
+#define BRIGHT_CHANGE_THRESHOLD 0.05 // only update param if changes by this fraction of max
+
 
 struct color {
   double speed;
@@ -85,7 +86,7 @@ double calc_speed(int knob_pin, double last_target_speed) {
   val = (SPEED_MAX *(val / KNOB_MID_VAL));
 
   // if value hasn't changed by enough, keep speed the same
-  if (abs(val - last_target_speed) < (SPEED_MAX * CHANGE_THRESHOLD)) return last_target_speed;
+  if (abs(val - last_target_speed) < (SPEED_MAX * SPEED_CHANGE_THRESHOLD)) return last_target_speed;
 
   return val;
 }
@@ -103,7 +104,7 @@ double calc_waveln(int knob_pin, double last_target_waveln) {
   if (val < 2) val = 1;
 
   // if value hasn't changed by enough, keep wavelength the same
-  if (abs(val - last_target_waveln) < THRESHOLD_WAVELN) return last_target_waveln;
+  if (abs(val - last_target_waveln) < WAVELN_THRESHOLD) return last_target_waveln;
 
   return val;
 }
@@ -118,7 +119,7 @@ double calc_brightness(int knob_pin, double last_target_brightness) {
   val = mapToExponential(val, 0, BRIGHTNESS_MAX, 0, BRIGHTNESS_MAX);
 
   // if value hasn't changed by enough, keep brightness the same
-  if (abs(val - last_target_brightness) < (BRIGHTNESS_MAX * CHANGE_THRESHOLD)) return last_target_brightness;
+  if (abs(val - last_target_brightness) < (BRIGHTNESS_MAX * BRIGHT_CHANGE_THRESHOLD)) return last_target_brightness;
 
   return val;
 }
@@ -173,9 +174,9 @@ void update_params() {
 
 void debug_print_params() {
   Serial.println("color speed wave bright phase_us");
-  Serial.printf("red %f %f %f %f\n", red.speed, red.waveln, red.brightness, red.phase_us);
-  Serial.printf("grn %f %f %f %f\n", grn.speed, grn.waveln, grn.brightness, grn.phase_us);
-  Serial.printf("blu %f %f %f %f\n", blu.speed, blu.waveln, blu.brightness, blu.phase_us);
+  Serial.printf("red %.6f %.6f %.6f %.6f\n", red.speed, red.waveln, red.brightness, red.phase_us);
+  Serial.printf("grn %.6f %.6f %.6f %.6f\n", grn.speed, grn.waveln, grn.brightness, grn.phase_us);
+  Serial.printf("blu %.6f %.6f %.6f %.6f\n", blu.speed, blu.waveln, blu.brightness, blu.phase_us);
 }
 
 void setup() {
@@ -247,9 +248,9 @@ void loop() {
   pixels.show();
 
   // DEBUG
-  // static uint32_t debug_timer = millis();
-  // if (millis() - debug_timer > 500) {
-  //   debug_print_params();
-  //   debug_timer = millis();
-  // }
+  static uint32_t debug_timer = millis();
+  if (millis() - debug_timer > 500) {
+    debug_print_params();
+    debug_timer = millis();
+  }
 }
