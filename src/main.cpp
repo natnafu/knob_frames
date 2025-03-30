@@ -180,7 +180,7 @@ void debug_print_params() {
 }
 
 void setup() {
-  Serial.begin(115200);
+  // Serial.begin(115200);
 
   pinMode(R1, INPUT);
   pinMode(R2, INPUT);
@@ -248,9 +248,9 @@ void loop() {
   pixels.show();
 
   // DEBUG
-  static uint32_t debug_timer = millis();
-  if (millis() - debug_timer > 500) {
-    debug_print_params();
-    debug_timer = millis();
-  }
+  // static uint32_t debug_timer = millis();
+  // if (millis() - debug_timer > 500) {
+  //   debug_print_params();
+  //   debug_timer = millis();
+  // }
 }
