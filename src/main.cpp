@@ -33,7 +33,7 @@
 // speed limits in units led/s
 #define SPEED_MIN 0
 #define SPEED_MAX 1
-#define SPEED_CHANGE_THRESHOLD 0.05 // only update param if changes by this fraction of max
+#define SPEED_CHANGE_THRESHOLD 0 // only update param if changes by this fraction of max
 
 // wavelength limits in units leds
 #define WAVELN_MIN 0
@@ -41,7 +41,7 @@
 #define WAVELN_THRESHOLD 1 // only change by whole number of leds
 
 #define BRIGHTNESS_MAX 1
-#define BRIGHT_CHANGE_THRESHOLD 0.05 // only update param if changes by this fraction of max
+#define BRIGHT_CHANGE_THRESHOLD 0 // only update param if changes by this fraction of max
 
 
 struct color {
@@ -236,7 +236,13 @@ uint8_t calc_color(color* rgb, int i, uint32_t t) {
 }
 
 void loop() {
-  update_params();
+  static uint32_t timer = millis();
+  if (millis() - timer > 1) {
+    // update every 1ms
+    update_params();
+    timer = millis();
+  }
+
 
   uint32_t t = micros();
   for (int i = 0; i < NUM_PIXELS; i++) {
