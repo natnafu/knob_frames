@@ -6,15 +6,15 @@
 #define LED_PIN D6
 
 // Knob to Pin mapping
-#define R1 A8
-#define R2 A5
-#define R3 A2
-#define R4 A9
-#define R5 A4
-#define R6 A1
-#define R7 A10
-#define R8 A3
-#define R9 A0
+#define R1 A8  // red speed
+#define R2 A5  // green speed
+#define R3 A2  // blue speed
+#define R4 A9  // red wavelength
+#define R5 A4  // green wavelength
+#define R6 A1  // blue wavelength
+#define R7 A10 // red brightness
+#define R8 A3  // green brightness
+#define R9 A0  // blue brightness
 
 // knob min/max bit values
 #define KNOB_MIN_VAL 0
@@ -25,7 +25,7 @@
 // Lower values = smoother transitions but slower response
 // Higher values = faster response but less smooth
 #define SPEED_SMOOTHING_FACTOR 0.01     // Faster response for speed
-#define WAVELN_SMOOTHING_FACTOR 0.5    // Slower transitions for wavelength
+#define WAVELN_SMOOTHING_FACTOR 1    // Slower transitions for wavelength
 #define BRIGHTNESS_SMOOTHING_FACTOR 1 // Medium speed for brightness
 
 #define SPEED_ZERO_RANGE 100 // range around mid knob value that is considered 0
