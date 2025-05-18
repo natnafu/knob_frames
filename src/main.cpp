@@ -3,18 +3,18 @@
 #include <math.h>
 
 #define NUM_PIXELS 432
-#define LED_PIN D6
+#define LED_PIN 2
 
 // Knob to Pin mapping
-#define R1 A8  // red speed
-#define R2 A5  // green speed
-#define R3 A2  // blue speed
-#define R4 A9  // red wavelength
-#define R5 A4  // green wavelength
-#define R6 A1  // blue wavelength
-#define R7 A10 // red brightness
-#define R8 A3  // green brightness
-#define R9 A0  // blue brightness
+// #define R1 A8  // red speed
+// #define R2 A5  // green speed
+// #define R3 A2  // blue speed
+// #define R4 A9  // red wavelength
+// #define R5 A4  // green wavelength
+// #define R6 A1  // blue wavelength
+// #define R7 A10 // red brightness
+// #define R8 A3  // green brightness
+// #define R9 A0  // blue brightness
 
 // knob min/max bit values
 #define KNOB_MIN_VAL 0
@@ -59,138 +59,138 @@ struct color {
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUM_PIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 // Map the linear value to an exponential scale
-float mapToExponential(float x, float in_min, float in_max, float out_min, float out_max) {
-  // Map the linear value to a normalized range [0, 1]
-  float normalizedValue = (x - in_min) / (in_max - in_min);
-  // Map the normalized value to the exponential scale
-  float exponentialValue = out_min + (out_max - out_min) * pow(normalizedValue, 2);
-  return exponentialValue;
-}
+// float mapToExponential(float x, float in_min, float in_max, float out_min, float out_max) {
+//   // Map the linear value to a normalized range [0, 1]
+//   float normalizedValue = (x - in_min) / (in_max - in_min);
+//   // Map the normalized value to the exponential scale
+//   float exponentialValue = out_min + (out_max - out_min) * pow(normalizedValue, 2);
+//   return exponentialValue;
+// }
 
-// invert knob value so value increases when turned clockwise
-double read_knob(int knob_pin) {
-  return KNOB_MAX_VAL - analogRead(knob_pin);
-}
+// // invert knob value so value increases when turned clockwise
+// double read_knob(int knob_pin) {
+//   return KNOB_MAX_VAL - analogRead(knob_pin);
+// }
 
-// calculates speed based on a knob position.
-// the sign of the speed indicates direction.
-// returns a value that is between -1.0 and 1.0
-double calc_speed(int knob_pin, double last_target_speed) {
-  // shift knob value so range is +/- the middle value
-  double val = read_knob(knob_pin) - KNOB_MID_VAL;
+// // calculates speed based on a knob position.
+// // the sign of the speed indicates direction.
+// // returns a value that is between -1.0 and 1.0
+// double calc_speed(int knob_pin, double last_target_speed) {
+//   // shift knob value so range is +/- the middle value
+//   double val = read_knob(knob_pin) - KNOB_MID_VAL;
 
-  // if val is within SPEED_ZERO_RANGE of 0, consider the value 0
-  if (abs(val) < SPEED_ZERO_RANGE) val = 0;
+//   // if val is within SPEED_ZERO_RANGE of 0, consider the value 0
+//   if (abs(val) < SPEED_ZERO_RANGE) val = 0;
 
-  // convert to speed
-  val = (SPEED_MAX *(val / KNOB_MID_VAL));
+//   // convert to speed
+//   val = (SPEED_MAX *(val / KNOB_MID_VAL));
 
-  // if value hasn't changed by enough, keep speed the same
-  if (abs(val - last_target_speed) < (SPEED_MAX * SPEED_CHANGE_THRESHOLD)) return last_target_speed;
+//   // if value hasn't changed by enough, keep speed the same
+//   if (abs(val - last_target_speed) < (SPEED_MAX * SPEED_CHANGE_THRESHOLD)) return last_target_speed;
 
-  return val;
-}
+//   return val;
+// }
 
-// calculates wave length based on a knob position.
-// returns a value between 0 and WAVELEN_MAX
-double calc_waveln(int knob_pin, double last_target_waveln) {
-  double val = WAVELN_MAX * (read_knob(knob_pin) / KNOB_MAX_VAL);
-  if (val == 0) return val; // return 0, no further math needed
+// // calculates wave length based on a knob position.
+// // returns a value between 0 and WAVELEN_MAX
+// double calc_waveln(int knob_pin, double last_target_waveln) {
+//   double val = WAVELN_MAX * (read_knob(knob_pin) / KNOB_MAX_VAL);
+//   if (val == 0) return val; // return 0, no further math needed
 
-  // Map exponentially to get smaller wavelenghts easier
-  val = mapToExponential(val, 0, WAVELN_MAX, 0, WAVELN_MAX);
+//   // Map exponentially to get smaller wavelenghts easier
+//   val = mapToExponential(val, 0, WAVELN_MAX, 0, WAVELN_MAX);
 
-  // make it easier to have a wavelength of 1
-  if (val < 2) val = 1;
+//   // make it easier to have a wavelength of 1
+//   if (val < 2) val = 1;
 
-  // if value hasn't changed by enough, keep wavelength the same
-  if (abs(val - last_target_waveln) < WAVELN_THRESHOLD) return last_target_waveln;
+//   // if value hasn't changed by enough, keep wavelength the same
+//   if (abs(val - last_target_waveln) < WAVELN_THRESHOLD) return last_target_waveln;
 
-  return val;
-}
+//   return val;
+// }
 
-// calculates the brightness based on a knob position.
-// returns a value between 0.0 and 1.0
-double calc_brightness(int knob_pin, double last_target_brightness) {
-  double val = BRIGHTNESS_MAX * read_knob(knob_pin) / KNOB_MAX_VAL;
-  if (val == 0) return val; // return 0, no further math needed
+// // calculates the brightness based on a knob position.
+// // returns a value between 0.0 and 1.0
+// double calc_brightness(int knob_pin, double last_target_brightness) {
+//   double val = BRIGHTNESS_MAX * read_knob(knob_pin) / KNOB_MAX_VAL;
+//   if (val == 0) return val; // return 0, no further math needed
 
-  // Map exponentially to match how our eyes perceive brightness
-  val = mapToExponential(val, 0, BRIGHTNESS_MAX, 0, BRIGHTNESS_MAX);
+//   // Map exponentially to match how our eyes perceive brightness
+//   val = mapToExponential(val, 0, BRIGHTNESS_MAX, 0, BRIGHTNESS_MAX);
 
-  // if value hasn't changed by enough, keep brightness the same
-  if (abs(val - last_target_brightness) < (BRIGHTNESS_MAX * BRIGHT_CHANGE_THRESHOLD)) return last_target_brightness;
+//   // if value hasn't changed by enough, keep brightness the same
+//   if (abs(val - last_target_brightness) < (BRIGHTNESS_MAX * BRIGHT_CHANGE_THRESHOLD)) return last_target_brightness;
 
-  return val;
-}
+//   return val;
+// }
 
-// Smoothly transition from current value to target value
-double smooth_value(double current, double target, double smoothing_factor) {
-  return current + (target - current) * smoothing_factor;
-}
+// // Smoothly transition from current value to target value
+// double smooth_value(double current, double target, double smoothing_factor) {
+//   return current + (target - current) * smoothing_factor;
+// }
 
-// Updates color params based on knobs
-void update_params() {
-  // Update target values based on knob positions
+// // Updates color params based on knobs
+// void update_params() {
+//   // Update target values based on knob positions
 
-  // Update speed target and note if target changed to adjust phase for continuity
-  double old_target = red.target_speed;
-  red.target_speed = calc_speed(R1, red.target_speed);
-  if (old_target != red.target_speed) {
-    red.target_speed_changed_us = micros();
-  }
-  old_target = grn.target_speed;
-  grn.target_speed = calc_speed(R2, grn.target_speed);
-  if (old_target != grn.target_speed) {
-    grn.target_speed_changed_us = micros();
-  }
-  old_target = blu.target_speed;
-  blu.target_speed = calc_speed(R3, blu.target_speed);
-  if (old_target != blu.target_speed) {
-    blu.target_speed_changed_us = micros();
-  }
+//   // Update speed target and note if target changed to adjust phase for continuity
+//   double old_target = red.target_speed;
+//   red.target_speed = calc_speed(R1, red.target_speed);
+//   if (old_target != red.target_speed) {
+//     red.target_speed_changed_us = micros();
+//   }
+//   old_target = grn.target_speed;
+//   grn.target_speed = calc_speed(R2, grn.target_speed);
+//   if (old_target != grn.target_speed) {
+//     grn.target_speed_changed_us = micros();
+//   }
+//   old_target = blu.target_speed;
+//   blu.target_speed = calc_speed(R3, blu.target_speed);
+//   if (old_target != blu.target_speed) {
+//     blu.target_speed_changed_us = micros();
+//   }
 
-  // Update wavelength target
-  red.target_waveln = calc_waveln(R4, red.target_waveln);
-  grn.target_waveln = calc_waveln(R5, grn.target_waveln);
-  blu.target_waveln = calc_waveln(R6, blu.target_waveln);
+//   // Update wavelength target
+//   red.target_waveln = calc_waveln(R4, red.target_waveln);
+//   grn.target_waveln = calc_waveln(R5, grn.target_waveln);
+//   blu.target_waveln = calc_waveln(R6, blu.target_waveln);
 
-  // Update brightness target
-  red.target_brightness = calc_brightness(R7, red.target_brightness);
-  grn.target_brightness = calc_brightness(R8, grn.target_brightness);
-  blu.target_brightness = calc_brightness(R9, blu.target_brightness);
+//   // Update brightness target
+//   red.target_brightness = calc_brightness(R7, red.target_brightness);
+//   grn.target_brightness = calc_brightness(R8, grn.target_brightness);
+//   blu.target_brightness = calc_brightness(R9, blu.target_brightness);
 
-  // Smoothly transition current values toward target values
-  red.speed = smooth_value(red.speed, red.target_speed, SPEED_SMOOTHING_FACTOR);
-  grn.speed = smooth_value(grn.speed, grn.target_speed, SPEED_SMOOTHING_FACTOR);
-  blu.speed = smooth_value(blu.speed, blu.target_speed, SPEED_SMOOTHING_FACTOR);
-  red.waveln = smooth_value(red.waveln, red.target_waveln, WAVELN_SMOOTHING_FACTOR);
-  grn.waveln = smooth_value(grn.waveln, grn.target_waveln, WAVELN_SMOOTHING_FACTOR);
-  blu.waveln = smooth_value(blu.waveln, blu.target_waveln, WAVELN_SMOOTHING_FACTOR);
-  red.brightness = smooth_value(red.brightness, red.target_brightness, BRIGHTNESS_SMOOTHING_FACTOR);
-  grn.brightness = smooth_value(grn.brightness, grn.target_brightness, BRIGHTNESS_SMOOTHING_FACTOR);
-  blu.brightness = smooth_value(blu.brightness, blu.target_brightness, BRIGHTNESS_SMOOTHING_FACTOR);
-}
+//   // Smoothly transition current values toward target values
+//   red.speed = smooth_value(red.speed, red.target_speed, SPEED_SMOOTHING_FACTOR);
+//   grn.speed = smooth_value(grn.speed, grn.target_speed, SPEED_SMOOTHING_FACTOR);
+//   blu.speed = smooth_value(blu.speed, blu.target_speed, SPEED_SMOOTHING_FACTOR);
+//   red.waveln = smooth_value(red.waveln, red.target_waveln, WAVELN_SMOOTHING_FACTOR);
+//   grn.waveln = smooth_value(grn.waveln, grn.target_waveln, WAVELN_SMOOTHING_FACTOR);
+//   blu.waveln = smooth_value(blu.waveln, blu.target_waveln, WAVELN_SMOOTHING_FACTOR);
+//   red.brightness = smooth_value(red.brightness, red.target_brightness, BRIGHTNESS_SMOOTHING_FACTOR);
+//   grn.brightness = smooth_value(grn.brightness, grn.target_brightness, BRIGHTNESS_SMOOTHING_FACTOR);
+//   blu.brightness = smooth_value(blu.brightness, blu.target_brightness, BRIGHTNESS_SMOOTHING_FACTOR);
+// }
 
-void debug_print_params() {
-  Serial.println("color speed wave bright phase_us");
-  Serial.printf("red %.6f %.6f %.6f %.6f\n", red.speed, red.waveln, red.brightness, red.phase_us);
-  Serial.printf("grn %.6f %.6f %.6f %.6f\n", grn.speed, grn.waveln, grn.brightness, grn.phase_us);
-  Serial.printf("blu %.6f %.6f %.6f %.6f\n", blu.speed, blu.waveln, blu.brightness, blu.phase_us);
-}
+// void debug_print_params() {
+//   Serial.println("color speed wave bright phase_us");
+//   Serial.printf("red %.6f %.6f %.6f %.6f\n", red.speed, red.waveln, red.brightness, red.phase_us);
+//   Serial.printf("grn %.6f %.6f %.6f %.6f\n", grn.speed, grn.waveln, grn.brightness, grn.phase_us);
+//   Serial.printf("blu %.6f %.6f %.6f %.6f\n", blu.speed, blu.waveln, blu.brightness, blu.phase_us);
+// }
 
 void setup() {
   // Serial.begin(115200);
 
-  pinMode(R1, INPUT);
-  pinMode(R2, INPUT);
-  pinMode(R3, INPUT);
-  pinMode(R4, INPUT);
-  pinMode(R5, INPUT);
-  pinMode(R6, INPUT);
-  pinMode(R7, INPUT);
-  pinMode(R8, INPUT);
-  pinMode(R9, INPUT);
+  // pinMode(R1, INPUT);
+  // pinMode(R2, INPUT);
+  // pinMode(R3, INPUT);
+  // pinMode(R4, INPUT);
+  // pinMode(R5, INPUT);
+  // pinMode(R6, INPUT);
+  // pinMode(R7, INPUT);
+  // pinMode(R8, INPUT);
+  // pinMode(R9, INPUT);
 
   pinMode(LED_PIN, OUTPUT);
   pixels.begin();
@@ -236,13 +236,18 @@ uint8_t calc_color(color* rgb, int i, uint32_t t) {
 }
 
 void loop() {
-  static uint32_t timer = millis();
-  if (millis() - timer > 1) {
-    // update every 1ms
-    update_params();
-    timer = millis();
-  }
-
+  // static uint32_t timer = millis();
+  // if (millis() - timer > 1) {
+  //   // update every 1ms
+  //   update_params();
+  //   timer = millis();
+  // }
+  red.speed = 0.5;
+  red.target_speed = 0.5;
+  red.waveln = 100;
+  red.target_waveln = 100;
+  red.brightness = 0.5;
+  red.target_brightness = 0.5;
 
   uint32_t t = micros();
   for (int i = 0; i < NUM_PIXELS; i++) {
