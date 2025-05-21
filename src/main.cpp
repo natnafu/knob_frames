@@ -2,7 +2,10 @@
 #include <Adafruit_NeoPixel.h>
 #include <math.h>
 
-#define NUM_PIXELS 432
+#define NUM_STRIPS 5
+#define LEDS_PER_STRIP 144
+
+#define NUM_PIXELS (NUM_STRIPS * LEDS_PER_STRIP)
 #define LED_PIN D6
 
 // Knob to Pin mapping
@@ -38,7 +41,7 @@
 // wavelength limits in units leds
 #define WAVELN_MIN 0
 #define WAVELN_MAX 400
-#define WAVELN_THRESHOLD 1 // only change by whole number of leds
+#define WAVELN_THRESHOLD 3 // only change by whole number of leds
 
 #define BRIGHTNESS_MAX 1
 #define BRIGHT_CHANGE_THRESHOLD 0 // only update param if changes by this fraction of max

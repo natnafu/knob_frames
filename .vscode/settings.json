@@ -1,4 +1,4 @@
 {
-  "stm32-for-vscode.openOCDPath": false,
-  "stm32-for-vscode.armToolchainPath": false
+  "stm32-for-vscode.openOCDPath": "/opt/homebrew/bin/openocd",
+  "stm32-for-vscode.armToolchainPath": "/Applications/ARM/bin"
 }
