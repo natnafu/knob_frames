@@ -79,14 +79,14 @@ double read_knob(int knob_pin) {
 // the sign of the speed indicates direction.
 // returns a value that is between -1.0 and 1.0
 double calc_speed(int knob_pin, double last_target_speed) {
-  // shift knob value so range is +/- the middle value
-  double val = read_knob(knob_pin) - KNOB_MID_VAL;
+  double val = SPEED_MAX * read_knob(knob_pin) / KNOB_MAX_VAL;
+  if (val <= 0) return 0; // return 0, no further math needed
 
   // if val is within SPEED_ZERO_RANGE of 0, consider the value 0
-  if (abs(val) < SPEED_ZERO_RANGE) val = 0;
+  // if (abs(val) < SPEED_ZERO_RANGE) val = 0;
 
   // convert to speed
-  val = (SPEED_MAX *(val / KNOB_MID_VAL));
+  // val = (SPEED_MAX *(val / KNOB_MID_VAL));
 
   // if value hasn't changed by enough, keep speed the same
   if (abs(val - last_target_speed) < (SPEED_MAX * SPEED_CHANGE_THRESHOLD)) return last_target_speed;
