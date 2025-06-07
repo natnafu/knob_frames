@@ -216,11 +216,11 @@ void setup() {
 
 uint8_t calc_color(color* rgb, int i, uint32_t t) {
   // Handle phase adjustment when speed changes
-  if (rgb->target_speed_changed_us) {
-    // Adjust phase to maintain visual continuity
-    rgb->phase_us += t - rgb->target_speed_changed_us;
-    rgb->target_speed_changed_us = 0;
-  }
+  // if (rgb->target_speed_changed_us) {
+  //   // Adjust phase to maintain visual continuity
+  //   rgb->phase_us += t - rgb->target_speed_changed_us;
+  //   rgb->target_speed_changed_us = 0;
+  // }
 
   // Calculate position based on wavelength and speed
   double pos;
