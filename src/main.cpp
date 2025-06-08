@@ -24,162 +24,81 @@
 #define KNOB_MAX_VAL 4095
 #define KNOB_MID_VAL ((KNOB_MAX_VAL - KNOB_MIN_VAL) / 2)
 
-// Smoothing factors (0.0 to 1.0)
-// Lower values = smoother transitions but slower response
-// Higher values = faster response but less smooth
-#define SPEED_SMOOTHING_FACTOR 0.01     // Faster response for speed
-#define WAVELN_SMOOTHING_FACTOR 1    // Slower transitions for wavelength
-#define BRIGHTNESS_SMOOTHING_FACTOR 1 // Medium speed for brightness
-
-#define SPEED_ZERO_RANGE 100 // range around mid knob value that is considered 0
-
 // speed limits in units led/s
-#define SPEED_MIN 0
+#define SPEED_MIN 0.0
 #define SPEED_MAX 0.5
-#define SPEED_CHANGE_THRESHOLD 0 // only update param if changes by this fraction of max
 
 // wavelength limits in units leds
-#define WAVELN_MIN 0
-#define WAVELN_MAX 400
-#define WAVELN_THRESHOLD 3 // only change by whole number of leds
+#define WAVELN_MIN 0.0
+#define WAVELN_MAX 400.0
+#define WAVELN_THRESHOLD 3.0 // only change by whole number of leds
 
-#define BRIGHTNESS_MAX 1
+#define BRIGHTNESS_MIN 0.0
+#define BRIGHTNESS_MAX 255.0
 #define BRIGHT_CHANGE_THRESHOLD 0 // only update param if changes by this fraction of max
 
-
 struct color {
-  double speed;
-  double target_speed;
-  double waveln;
-  double target_waveln;
-  double brightness;
-  double target_brightness;
-  double phase_us;
-  uint32_t target_speed_changed_us; // saves micros() when speed is changed, 0 if no new change
-  double last_pos_offset; // Used for smooth phase transitions
-} red, grn, blu;
+  // pot knobs
+  int speed_pin;
+  int waveln_pin;
+  int brightness_pin;
+  // wave parameters
+  double speed_current;
+  double speed_target;
+  double waveln_current;
+  double waveln_target;
+  double brightness_current;
+  double brightness_target;
+};
+
+struct color red = {R1, R4, R7, 0, 0, 0, 0, 0, 0};
+struct color grn = {R2, R5, R8, 0, 0, 0, 0, 0, 0};
+struct color blu = {R3, R6, R9, 0, 0, 0, 0, 0, 0};
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUM_PIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
-// Map the linear value to an exponential scale
-float mapToExponential(float x, float in_min, float in_max, float out_min, float out_max) {
-  // Map the linear value to a normalized range [0, 1]
-  float normalizedValue = (x - in_min) / (in_max - in_min);
-  // Map the normalized value to the exponential scale
-  float exponentialValue = out_min + (out_max - out_min) * pow(normalizedValue, 2);
-  return exponentialValue;
-}
-
-// invert knob value so value increases when turned clockwise
+// Read potentiometer value from a knob, returns a value between 0.0 and 1.0
 double read_knob(int knob_pin) {
-  return KNOB_MAX_VAL - analogRead(knob_pin);
-}
-
-// calculates speed based on a knob position.
-// the sign of the speed indicates direction.
-// returns a value that is between -1.0 and 1.0
-double calc_speed(int knob_pin, double last_target_speed) {
-  double val = SPEED_MAX * read_knob(knob_pin) / KNOB_MAX_VAL;
-  if (val <= 0) return 0; // return 0, no further math needed
-
-  // if val is within SPEED_ZERO_RANGE of 0, consider the value 0
-  // if (abs(val) < SPEED_ZERO_RANGE) val = 0;
-
-  // convert to speed
-  // val = (SPEED_MAX *(val / KNOB_MID_VAL));
-
-  // if value hasn't changed by enough, keep speed the same
-  if (abs(val - last_target_speed) < (SPEED_MAX * SPEED_CHANGE_THRESHOLD)) return last_target_speed;
-
-  return val;
-}
-
-// calculates wave length based on a knob position.
-// returns a value between 0 and WAVELEN_MAX
-double calc_waveln(int knob_pin, double last_target_waveln) {
-  double val = WAVELN_MAX * (read_knob(knob_pin) / KNOB_MAX_VAL);
-  if (val == 0) return val; // return 0, no further math needed
-
-  // Map exponentially to get smaller wavelenghts easier
-  val = mapToExponential(val, 0, WAVELN_MAX, 0, WAVELN_MAX);
-
-  // make it easier to have a wavelength of 1
-  if (val < 2) val = 1;
-
-  // if value hasn't changed by enough, keep wavelength the same
-  if (abs(val - last_target_waveln) < WAVELN_THRESHOLD) return last_target_waveln;
-
-  return val;
-}
-
-// calculates the brightness based on a knob position.
-// returns a value between 0.0 and 1.0
-double calc_brightness(int knob_pin, double last_target_brightness) {
-  double val = BRIGHTNESS_MAX * read_knob(knob_pin) / KNOB_MAX_VAL;
-  if (val == 0) return val; // return 0, no further math needed
-
-  // Map exponentially to match how our eyes perceive brightness
-  val = mapToExponential(val, 0, BRIGHTNESS_MAX, 0, BRIGHTNESS_MAX);
-
-  // if value hasn't changed by enough, keep brightness the same
-  if (abs(val - last_target_brightness) < (BRIGHTNESS_MAX * BRIGHT_CHANGE_THRESHOLD)) return last_target_brightness;
-
-  return val;
-}
-
-// Smoothly transition from current value to target value
-double smooth_value(double current, double target, double smoothing_factor) {
-  return current + (target - current) * smoothing_factor;
+  // invert ADC value so value increases when turned clockwise
+  return (KNOB_MAX_VAL - analogRead(knob_pin)) / (double)(KNOB_MAX_VAL);
 }
 
 // Updates color params based on knobs
 void update_params() {
-  // Update target values based on knob positions
-
-  // Update speed target and note if target changed to adjust phase for continuity
-  double old_target = red.target_speed;
-  red.target_speed = calc_speed(R1, red.target_speed);
-  if (old_target != red.target_speed) {
-    red.target_speed_changed_us = micros();
-  }
-  old_target = grn.target_speed;
-  grn.target_speed = calc_speed(R2, grn.target_speed);
-  if (old_target != grn.target_speed) {
-    grn.target_speed_changed_us = micros();
-  }
-  old_target = blu.target_speed;
-  blu.target_speed = calc_speed(R3, blu.target_speed);
-  if (old_target != blu.target_speed) {
-    blu.target_speed_changed_us = micros();
-  }
+  // Update speed
+  red.speed_target = read_knob(red.speed_pin) * (SPEED_MAX - SPEED_MIN) + SPEED_MIN;
+  grn.speed_target = read_knob(grn.speed_pin) * (SPEED_MAX - SPEED_MIN) + SPEED_MIN;
+  blu.speed_target = read_knob(blu.speed_pin) * (SPEED_MAX - SPEED_MIN) + SPEED_MIN;
+  // for now, set current speed to target speed
+  red.speed_current = red.speed_target;
+  grn.speed_current = grn.speed_target;
+  blu.speed_current = blu.speed_target;
 
   // Update wavelength target
-  red.target_waveln = calc_waveln(R4, red.target_waveln);
-  grn.target_waveln = calc_waveln(R5, grn.target_waveln);
-  blu.target_waveln = calc_waveln(R6, blu.target_waveln);
+  // TODO: should wavelength be an integer?
+  red.waveln_target = read_knob(red.waveln_pin) * (WAVELN_MAX - WAVELN_MIN) + WAVELN_MIN;
+  grn.waveln_target = read_knob(grn.waveln_pin) * (WAVELN_MAX - WAVELN_MIN) + WAVELN_MIN;
+  blu.waveln_target = read_knob(blu.waveln_pin) * (WAVELN_MAX - WAVELN_MIN) + WAVELN_MIN;
+  // for now, set current wavelength to target wavelength
+  red.waveln_current = red.waveln_target;
+  grn.waveln_current = grn.waveln_target;
+  blu.waveln_current = blu.waveln_target;
 
   // Update brightness target
-  red.target_brightness = calc_brightness(R7, red.target_brightness);
-  grn.target_brightness = calc_brightness(R8, grn.target_brightness);
-  blu.target_brightness = calc_brightness(R9, blu.target_brightness);
-
-  // Smoothly transition current values toward target values
-  red.speed = smooth_value(red.speed, red.target_speed, SPEED_SMOOTHING_FACTOR);
-  grn.speed = smooth_value(grn.speed, grn.target_speed, SPEED_SMOOTHING_FACTOR);
-  blu.speed = smooth_value(blu.speed, blu.target_speed, SPEED_SMOOTHING_FACTOR);
-  red.waveln = smooth_value(red.waveln, red.target_waveln, WAVELN_SMOOTHING_FACTOR);
-  grn.waveln = smooth_value(grn.waveln, grn.target_waveln, WAVELN_SMOOTHING_FACTOR);
-  blu.waveln = smooth_value(blu.waveln, blu.target_waveln, WAVELN_SMOOTHING_FACTOR);
-  red.brightness = smooth_value(red.brightness, red.target_brightness, BRIGHTNESS_SMOOTHING_FACTOR);
-  grn.brightness = smooth_value(grn.brightness, grn.target_brightness, BRIGHTNESS_SMOOTHING_FACTOR);
-  blu.brightness = smooth_value(blu.brightness, blu.target_brightness, BRIGHTNESS_SMOOTHING_FACTOR);
+  red.brightness_target = read_knob(red.brightness_pin) * (BRIGHTNESS_MAX - BRIGHTNESS_MIN) + BRIGHTNESS_MIN;
+  grn.brightness_target = read_knob(grn.brightness_pin) * (BRIGHTNESS_MAX - BRIGHTNESS_MIN) + BRIGHTNESS_MIN;
+  blu.brightness_target = read_knob(blu.brightness_pin) * (BRIGHTNESS_MAX - BRIGHTNESS_MIN) + BRIGHTNESS_MIN;
+  // for now, set current brightness to target brightness
+  red.brightness_current = red.brightness_target;
+  grn.brightness_current = grn.brightness_target;
+  blu.brightness_current = blu.brightness_target;
 }
 
 void debug_print_params() {
-  Serial.println("color speed wave bright phase_us");
-  Serial.printf("red %.6f %.6f %.6f %.6f\n", red.speed, red.waveln, red.brightness, red.phase_us);
-  Serial.printf("grn %.6f %.6f %.6f %.6f\n", grn.speed, grn.waveln, grn.brightness, grn.phase_us);
-  Serial.printf("blu %.6f %.6f %.6f %.6f\n", blu.speed, blu.waveln, blu.brightness, blu.phase_us);
+  Serial.println("DEBUG:");
+  Serial.printf("red speed(%.6f,%.6f) wave(%.6f,%.6f) bright(%.6f,%.6f)\n", red.speed_current, red.speed_target, red.waveln_current, red.waveln_target, red.brightness_current, red.brightness_target);
+  Serial.printf("grn speed(%.6f,%.6f) wave(%.6f,%.6f) bright(%.6f,%.6f)\n", grn.speed_current, grn.speed_target, grn.waveln_current, grn.waveln_target, grn.brightness_current, grn.brightness_target);
+  Serial.printf("blu speed(%.6f,%.6f) wave(%.6f,%.6f) bright(%.6f,%.6f)\n", blu.speed_current, blu.speed_target, blu.waveln_current, blu.waveln_target, blu.brightness_current, blu.brightness_target);
 }
 
 void setup() {
@@ -197,31 +116,9 @@ void setup() {
 
   pinMode(LED_PIN, OUTPUT);
   pixels.begin();
-
-  // Initialize all values to 0
-  red.speed = red.target_speed = 0;
-  grn.speed = grn.target_speed = 0;
-  blu.speed = blu.target_speed = 0;
-
-  red.waveln = red.target_waveln = 0;
-  grn.waveln = grn.target_waveln = 0;
-  blu.waveln = blu.target_waveln = 0;
-
-  red.brightness = red.target_brightness = 0;
-  grn.brightness = grn.target_brightness = 0;
-  blu.brightness = blu.target_brightness = 0;
-
-  red.last_pos_offset = grn.last_pos_offset = blu.last_pos_offset = 0;
 }
 
 uint8_t calc_color(color* rgb, int i, uint32_t t) {
-  // Handle phase adjustment when speed changes
-  // if (rgb->target_speed_changed_us) {
-  //   // Adjust phase to maintain visual continuity
-  //   rgb->phase_us += t - rgb->target_speed_changed_us;
-  //   rgb->target_speed_changed_us = 0;
-  // }
-
   // Calculate position based on wavelength and speed
   double pos;
   if (rgb->waveln == 0) {
@@ -245,7 +142,6 @@ void loop() {
     update_params();
     timer = millis();
   }
-
 
   uint32_t t = micros();
   for (int i = 0; i < NUM_PIXELS; i++) {
