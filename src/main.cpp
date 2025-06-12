@@ -30,15 +30,18 @@
 #define SPEED_MIN 0.0
 #define SPEED_MAX 0.5
 #define SPEED_CHANGE_THRESHOLD (0.02 * (SPEED_MAX - SPEED_MIN))
+#define SPEED_SMOOTHING_FACTOR 0.1
 
 // wavelength limits in units leds
 #define WAVELN_MIN 0.0
 #define WAVELN_MAX 400.0
 #define WAVELN_THRESHOLD 3.0 // only change by whole number of leds
+#define WAVELN_SMOOTHING_FACTOR 0.1
 
 #define BRIGHTNESS_MIN 0.0
 #define BRIGHTNESS_MAX 255.0
 #define BRIGHT_CHANGE_THRESHOLD (0.01 * (BRIGHTNESS_MAX - BRIGHTNESS_MIN))
+#define BRIGHT_SMOOTHING_FACTOR 0.1
 
 struct color {
   // pot knobs
@@ -69,27 +72,39 @@ double read_knob(int knob_pin) {
 }
 
 // function to apply hysteresis to a value
-double apply_hysteresis(double value, double last_value, double threshold) {
-  if (fabs(value - last_value) < threshold) {
+double apply_hysteresis(double new_value, double last_value, double threshold) {
+  if (fabs(new_value - last_value) < threshold) {
     return last_value; // no significant change
   }
-  return value; // significant change
+  return new_value; // significant change
+}
+
+// function to apply smoothing to a value
+double apply_smoothing(double target_value, double current_value, double smoothing_factor) {
+  return current_value + (target_value - current_value) * smoothing_factor;
 }
 
 // Updates color params based on knobs
 // TODO: for now, set current to target values
 void update_params(color* rgb) {
+  double new_target;
+
   // Update speed
-  rgb->speed_target = read_knob(rgb->speed_pin) * (SPEED_MAX - SPEED_MIN) + SPEED_MIN;
-  rgb->speed_current = apply_hysteresis(rgb->speed_target, rgb->speed_current, SPEED_CHANGE_THRESHOLD);
+  new_target = read_knob(rgb->speed_pin) * (SPEED_MAX - SPEED_MIN) + SPEED_MIN;
+  rgb->speed_target = apply_hysteresis(new_target, rgb->speed_target, SPEED_CHANGE_THRESHOLD);
+  rgb->speed_current = apply_smoothing(rgb->speed_target, rgb->speed_current, SPEED_SMOOTHING_FACTOR);
 
   // Update wavelength target TODO: should wavelength be an integer?
-  rgb->waveln_target = read_knob(rgb->waveln_pin) * (WAVELN_MAX - WAVELN_MIN) + WAVELN_MIN;
-  rgb->waveln_current = apply_hysteresis(rgb->waveln_target, rgb->waveln_current, WAVELN_THRESHOLD);
+  new_target = read_knob(rgb->waveln_pin) * (WAVELN_MAX - WAVELN_MIN) + WAVELN_MIN;
+  rgb->waveln_target = apply_hysteresis(new_target, rgb->waveln_target, WAVELN_THRESHOLD);
+  rgb->waveln_current = apply_smoothing(rgb->waveln_target, rgb->waveln_current, WAVELN_SMOOTHING_FACTOR);
 
   // Update brightness target
-  rgb->brightness_target = (int)(read_knob(rgb->brightness_pin) * (BRIGHTNESS_MAX - BRIGHTNESS_MIN) + BRIGHTNESS_MIN);
-  rgb->brightness_current = apply_hysteresis(rgb->brightness_target, rgb->brightness_current, BRIGHT_CHANGE_THRESHOLD);
+  new_target = read_knob(rgb->brightness_pin) * (BRIGHTNESS_MAX - BRIGHTNESS_MIN) + BRIGHTNESS_MIN;
+  rgb->brightness_target = apply_hysteresis(new_target, rgb->brightness_target, BRIGHT_CHANGE_THRESHOLD);
+  rgb->brightness_current = apply_smoothing(rgb->brightness_target, rgb->brightness_current, BRIGHT_SMOOTHING_FACTOR);
+  // Ensure brightness is an integer
+  // rgb->brightness_current = (int)rgb->brightness_current;
 }
 
 void debug_print_params() {
@@ -155,9 +170,9 @@ void loop() {
 
   // DEBUG info
   // NOTE: serial monitor must be connected or ESP will skip some led updates
-  // static uint32_t debug_timer = millis();
-  // if (millis() - debug_timer > 500) {
-  //   debug_print_params();
-  //   debug_timer = millis();
-  // }
+  static uint32_t debug_timer = millis();
+  if (millis() - debug_timer > 500) {
+    debug_print_params();
+    debug_timer = millis();
+  }
 }
