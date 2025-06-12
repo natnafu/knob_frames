@@ -71,7 +71,6 @@ double apply_hysteresis(double value, double last_value, double threshold) {
   if (fabs(value - last_value) < threshold) {
     return last_value; // no significant change
   }
-  Serial.printf("Hysteresis change: %.6f -> %.6f\n", last_value, value);
   return value; // significant change
 }
 
