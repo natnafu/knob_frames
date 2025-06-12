@@ -49,6 +49,8 @@ struct color {
   double waveln_target;
   double brightness_current;
   double brightness_target;
+  // phase offset in microseconds
+  uint32_t phase_us;
 };
 
 struct color red = {R1, R4, R7, 0, 0, 0, 0, 0, 0};
@@ -58,9 +60,17 @@ struct color blu = {R3, R6, R9, 0, 0, 0, 0, 0, 0};
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUM_PIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 // Read potentiometer value from a knob, returns a value between 0.0 and 1.0
+// invert ADC value so value increases when turned clockwise
 double read_knob(int knob_pin) {
-  // invert ADC value so value increases when turned clockwise
   return (KNOB_MAX_VAL - analogRead(knob_pin)) / (double)(KNOB_MAX_VAL);
+}
+
+// function to apply hysteresis to a value
+double apply_hysteresis(double value, double last_value, double threshold) {
+  if (fabs(value - last_value) < threshold) {
+    return last_value; // no significant change
+  }
+  return value; // significant change
 }
 
 // Updates color params based on knobs
@@ -85,9 +95,9 @@ void update_params() {
   blu.waveln_current = blu.waveln_target;
 
   // Update brightness target
-  red.brightness_target = read_knob(red.brightness_pin) * (BRIGHTNESS_MAX - BRIGHTNESS_MIN) + BRIGHTNESS_MIN;
-  grn.brightness_target = read_knob(grn.brightness_pin) * (BRIGHTNESS_MAX - BRIGHTNESS_MIN) + BRIGHTNESS_MIN;
-  blu.brightness_target = read_knob(blu.brightness_pin) * (BRIGHTNESS_MAX - BRIGHTNESS_MIN) + BRIGHTNESS_MIN;
+  red.brightness_target = (int)(read_knob(red.brightness_pin) * (BRIGHTNESS_MAX - BRIGHTNESS_MIN) + BRIGHTNESS_MIN);
+  grn.brightness_target = (int)(read_knob(grn.brightness_pin) * (BRIGHTNESS_MAX - BRIGHTNESS_MIN) + BRIGHTNESS_MIN);
+  blu.brightness_target = (int)(read_knob(blu.brightness_pin) * (BRIGHTNESS_MAX - BRIGHTNESS_MIN) + BRIGHTNESS_MIN);
   // for now, set current brightness to target brightness
   red.brightness_current = red.brightness_target;
   grn.brightness_current = grn.brightness_target;
@@ -101,8 +111,26 @@ void debug_print_params() {
   Serial.printf("blu speed(%.6f,%.6f) wave(%.6f,%.6f) bright(%.6f,%.6f)\n", blu.speed_current, blu.speed_target, blu.waveln_current, blu.waveln_target, blu.brightness_current, blu.brightness_target);
 }
 
+// calculate color value for a pixel based on its index, current time, and color parameters
+uint8_t calc_color(color* rgb, int i, uint32_t t) {
+  double pos;
+  if (rgb->waveln_current == 0) {
+    // If wavelength is 0, just use speed to calculate position
+    pos = rgb->speed_current * (t - rgb->phase_us) / 1000000.0;
+  } else {
+    pos = ((double) i / rgb->waveln_current) + (rgb->speed_current * (t - rgb->phase_us) / 1000000.0);
+  }
+
+  // Apply sine wave transformation
+  pos = 0.5 * (1.0 + sin(2 * PI * pos));
+  // Apply brightness
+  pos = pos * rgb->brightness_current;
+
+  return pos;
+}
+
 void setup() {
-  // Serial.begin(115200);
+  Serial.begin(115200);
 
   pinMode(R1, INPUT);
   pinMode(R2, INPUT);
@@ -116,23 +144,6 @@ void setup() {
 
   pinMode(LED_PIN, OUTPUT);
   pixels.begin();
-}
-
-uint8_t calc_color(color* rgb, int i, uint32_t t) {
-  // Calculate position based on wavelength and speed
-  double pos;
-  if (rgb->waveln == 0) {
-    pos = rgb->speed * (t - rgb->phase_us) / 1000000.0;
-  } else {
-    pos = ((double) i / rgb->waveln) + (rgb->speed * (t - rgb->phase_us) / 1000000.0);
-  }
-
-  // Apply sine wave transformation
-  pos = 0.5 * (1.0 + sin(2 * PI * pos));
-  // Apply brightness
-  pos = pos * 255 * rgb->brightness;
-
-  return pos;
 }
 
 void loop() {
@@ -153,9 +164,9 @@ void loop() {
   pixels.show();
 
   // DEBUG
-  // static uint32_t debug_timer = millis();
-  // if (millis() - debug_timer > 500) {
-  //   debug_print_params();
-  //   debug_timer = millis();
-  // }
+  static uint32_t debug_timer = millis();
+  if (millis() - debug_timer > 500) {
+    debug_print_params();
+    debug_timer = millis();
+  }
 }
