@@ -27,6 +27,7 @@
 // speed limits in units led/s
 #define SPEED_MIN 0.0
 #define SPEED_MAX 0.5
+#define SPEED_CHANGE_THRESHOLD (0.02 * (SPEED_MAX - SPEED_MIN))
 
 // wavelength limits in units leds
 #define WAVELN_MIN 0.0
@@ -35,7 +36,7 @@
 
 #define BRIGHTNESS_MIN 0.0
 #define BRIGHTNESS_MAX 255.0
-#define BRIGHT_CHANGE_THRESHOLD 0 // only update param if changes by this fraction of max
+#define BRIGHT_CHANGE_THRESHOLD (0.01 * (BRIGHTNESS_MAX - BRIGHTNESS_MIN))
 
 struct color {
   // pot knobs
@@ -70,38 +71,24 @@ double apply_hysteresis(double value, double last_value, double threshold) {
   if (fabs(value - last_value) < threshold) {
     return last_value; // no significant change
   }
+  Serial.printf("Hysteresis change: %.6f -> %.6f\n", last_value, value);
   return value; // significant change
 }
 
 // Updates color params based on knobs
-void update_params() {
+// TODO: for now, set current to target values
+void update_params(color* rgb) {
   // Update speed
-  red.speed_target = read_knob(red.speed_pin) * (SPEED_MAX - SPEED_MIN) + SPEED_MIN;
-  grn.speed_target = read_knob(grn.speed_pin) * (SPEED_MAX - SPEED_MIN) + SPEED_MIN;
-  blu.speed_target = read_knob(blu.speed_pin) * (SPEED_MAX - SPEED_MIN) + SPEED_MIN;
-  // for now, set current speed to target speed
-  red.speed_current = red.speed_target;
-  grn.speed_current = grn.speed_target;
-  blu.speed_current = blu.speed_target;
+  rgb->speed_target = read_knob(rgb->speed_pin) * (SPEED_MAX - SPEED_MIN) + SPEED_MIN;
+  rgb->speed_current = apply_hysteresis(rgb->speed_target, rgb->speed_current, SPEED_CHANGE_THRESHOLD);
 
-  // Update wavelength target
-  // TODO: should wavelength be an integer?
-  red.waveln_target = read_knob(red.waveln_pin) * (WAVELN_MAX - WAVELN_MIN) + WAVELN_MIN;
-  grn.waveln_target = read_knob(grn.waveln_pin) * (WAVELN_MAX - WAVELN_MIN) + WAVELN_MIN;
-  blu.waveln_target = read_knob(blu.waveln_pin) * (WAVELN_MAX - WAVELN_MIN) + WAVELN_MIN;
-  // for now, set current wavelength to target wavelength
-  red.waveln_current = red.waveln_target;
-  grn.waveln_current = grn.waveln_target;
-  blu.waveln_current = blu.waveln_target;
+  // Update wavelength target TODO: should wavelength be an integer?
+  rgb->waveln_target = read_knob(rgb->waveln_pin) * (WAVELN_MAX - WAVELN_MIN) + WAVELN_MIN;
+  rgb->waveln_current = apply_hysteresis(rgb->waveln_target, rgb->waveln_current, WAVELN_THRESHOLD);
 
   // Update brightness target
-  red.brightness_target = (int)(read_knob(red.brightness_pin) * (BRIGHTNESS_MAX - BRIGHTNESS_MIN) + BRIGHTNESS_MIN);
-  grn.brightness_target = (int)(read_knob(grn.brightness_pin) * (BRIGHTNESS_MAX - BRIGHTNESS_MIN) + BRIGHTNESS_MIN);
-  blu.brightness_target = (int)(read_knob(blu.brightness_pin) * (BRIGHTNESS_MAX - BRIGHTNESS_MIN) + BRIGHTNESS_MIN);
-  // for now, set current brightness to target brightness
-  red.brightness_current = red.brightness_target;
-  grn.brightness_current = grn.brightness_target;
-  blu.brightness_current = blu.brightness_target;
+  rgb->brightness_target = (int)(read_knob(rgb->brightness_pin) * (BRIGHTNESS_MAX - BRIGHTNESS_MIN) + BRIGHTNESS_MIN);
+  rgb->brightness_current = apply_hysteresis(rgb->brightness_target, rgb->brightness_current, BRIGHT_CHANGE_THRESHOLD);
 }
 
 void debug_print_params() {
@@ -150,7 +137,9 @@ void loop() {
   static uint32_t timer = millis();
   if (millis() - timer > 1) {
     // update every 1ms
-    update_params();
+    update_params(&red);
+    update_params(&grn);
+    update_params(&blu);
     timer = millis();
   }
 
