@@ -151,10 +151,11 @@ void loop() {
   }
   pixels.show();
 
-  // DEBUG
-  static uint32_t debug_timer = millis();
-  if (millis() - debug_timer > 500) {
-    debug_print_params();
-    debug_timer = millis();
-  }
+  // DEBUG info
+  // NOTE: serial monitor must be connected or ESP will skip some led updates
+  // static uint32_t debug_timer = millis();
+  // if (millis() - debug_timer > 500) {
+  //   debug_print_params();
+  //   debug_timer = millis();
+  // }
 }
