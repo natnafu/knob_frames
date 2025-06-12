@@ -2,10 +2,12 @@
 #include <Adafruit_NeoPixel.h>
 #include <math.h>
 
+// Constants for the LED strip
 #define NUM_STRIPS 5
 #define LEDS_PER_STRIP 144
-
 #define NUM_PIXELS (NUM_STRIPS * LEDS_PER_STRIP)
+
+// LED strip connected to this pin
 #define LED_PIN D6
 
 // Knob to Pin mapping
