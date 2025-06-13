@@ -150,14 +150,10 @@ void setup() {
 }
 
 void loop() {
-  static uint32_t timer = millis();
-  if (millis() - timer > 1) {
-    // update every 1ms
-    update_params(&red);
-    update_params(&grn);
-    update_params(&blu);
-    timer = millis();
-  }
+  // Update all parameters
+  update_params(&red);
+  update_params(&grn);
+  update_params(&blu);
 
   uint32_t t = micros();
   for (int i = 0; i < NUM_PIXELS; i++) {
