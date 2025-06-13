@@ -24,7 +24,6 @@
 // knob min/max bit values
 #define KNOB_MIN_VAL 0
 #define KNOB_MAX_VAL 4095
-#define KNOB_MID_VAL ((KNOB_MAX_VAL - KNOB_MIN_VAL) / 2)
 
 // speed limits in units led/s
 #define SPEED_MIN 0.0
@@ -36,7 +35,7 @@
 #define WAVELN_MIN 0.0
 #define WAVELN_MAX 400.0
 #define WAVELN_THRESHOLD 3.0 // only change by whole number of leds
-#define WAVELN_SMOOTHING_FACTOR 0.1
+#define WAVELN_SMOOTHING_FACTOR 1
 
 #define BRIGHTNESS_MIN 0.0
 #define BRIGHTNESS_MAX 255.0
@@ -166,9 +165,9 @@ void loop() {
 
   // DEBUG info
   // NOTE: serial monitor must be connected or ESP will skip some led updates
-  static uint32_t debug_timer = millis();
-  if (millis() - debug_timer > 500) {
-    debug_print_params();
-    debug_timer = millis();
-  }
+  // static uint32_t debug_timer = millis();
+  // if (millis() - debug_timer > 500) {
+  //   debug_print_params();
+  //   debug_timer = millis();
+  // }
 }
