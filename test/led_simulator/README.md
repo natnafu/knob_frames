@@ -1,6 +1,6 @@
 # LED Strip Simulator
 
-This project provides Python applications that simulate an LED strip display using sine waves to create colorful patterns, similar to the Arduino implementation in the original project. The simulators provide graphical user interfaces with sliders to control the parameters of the red, green, and blue sine waves.
+This project provides Python applications that simulate an LED strip display using sine waves to create colorful patterns, similar to the Arduino implementation in the original project. The simulators provide graphical user interfaces with sliders to control the parameters of the red, green, and blue sine waves. Additionally, a serial-based visualizer is included that can display real-time LED data from the Arduino.
 
 ## Features
 
@@ -30,6 +30,41 @@ pip install -r test/led_simulator/requirements.txt
 ```
 
 ## Usage
+
+### Serial LED Visualizer
+
+The serial LED visualizer reads LED data directly from the Arduino over a serial connection and displays it in real-time. The script is executable and can be run directly from the terminal:
+
+```bash
+# Run with Python
+python test/led_simulator/serial_led_visualizer.py <serial_port>
+
+# Or run directly (Unix/Mac)
+./test/led_simulator/serial_led_visualizer.py <serial_port>
+```
+
+Replace `<serial_port>` with your Arduino's serial port (e.g., COM3 on Windows or /dev/ttyUSB0 on Linux/Mac).
+
+Additional command-line options:
+```bash
+# List available serial ports
+python test/led_simulator/serial_led_visualizer.py --list
+
+# Specify baud rate (default is 921600)
+python test/led_simulator/serial_led_visualizer.py <serial_port> --baud 115200
+```
+
+Examples:
+```bash
+# Windows
+python test/led_simulator/serial_led_visualizer.py COM3
+
+# Linux/Mac
+python test/led_simulator/serial_led_visualizer.py /dev/ttyUSB0
+
+# Direct execution on Linux/Mac
+./test/led_simulator/serial_led_visualizer.py /dev/ttyUSB0
+```
 
 ### Matplotlib-based Simulator (Recommended)
 

@@ -3,7 +3,7 @@
 #include <math.h>
 
 // Constants for the LED strip
-#define NUM_STRIPS 5
+#define NUM_STRIPS 7
 #define LEDS_PER_STRIP 144
 #define NUM_PIXELS (NUM_STRIPS * LEDS_PER_STRIP)
 
@@ -132,7 +132,7 @@ uint8_t calc_color(color* rgb, int i, uint32_t t) {
 }
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(921600);
 
   pinMode(R1, INPUT);
   pinMode(R2, INPUT);
@@ -155,19 +155,27 @@ void loop() {
   update_params(&blu);
 
   uint32_t t = micros();
+
+  // Start of LED data frame
+  Serial.println("LED_DATA_START");
+  Serial.printf("NUM_STRIPS:%d,LEDS_PER_STRIP:%d\n", NUM_STRIPS, LEDS_PER_STRIP);
+
   for (int i = 0; i < NUM_PIXELS; i++) {
     uint8_t r = calc_color(&red, i, t);
     uint8_t g = calc_color(&grn, i, t);
     uint8_t b = calc_color(&blu, i, t);
     pixels.setPixelColor(i, pixels.Color(r,g,b));
+
+    // Send LED color data over serial
+    Serial.printf("LED:%d,%d,%d,%d\n", i, r, g, b);
   }
+
+  // End of LED data frame
+  Serial.println("LED_DATA_END");
+
+  // Update the LEDs
   pixels.show();
 
-  // DEBUG info
-  // NOTE: serial monitor must be connected or ESP will skip some led updates
-  // static uint32_t debug_timer = millis();
-  // if (millis() - debug_timer > 500) {
-  //   debug_print_params();
-  //   debug_timer = millis();
-  // }
+  // Also send the current parameters
+  //debug_print_params();
 }
