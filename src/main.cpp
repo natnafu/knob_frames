@@ -29,9 +29,9 @@
 
 // speed limits in units led/s
 #define SPEED_MIN 0.0
-#define SPEED_MAX 0.5
+#define SPEED_MAX 1
 #define SPEED_CHANGE_THRESHOLD (0.02 * (SPEED_MAX - SPEED_MIN))
-#define SPEED_SMOOTHING_FACTOR 0.1
+#define SPEED_SMOOTHING_FACTOR 1
 
 // wavelength limits in units leds
 #define WAVELN_MIN 0.0
@@ -56,11 +56,12 @@ struct color {
   double waveln_target;
   double brightness_current;
   double brightness_target;
+  double phase; // Current phase position
 };
 
-struct color red = {R1, R4, R7, 0, 0, 0, 0, 0, 0};
-struct color grn = {R2, R5, R8, 0, 0, 0, 0, 0, 0};
-struct color blu = {R3, R6, R9, 0, 0, 0, 0, 0, 0};
+struct color red = {R1, R4, R7, 0, 0, 0, 0, 0, 0, 0};
+struct color grn = {R2, R5, R8, 0, 0, 0, 0, 0, 0, 0};
+struct color blu = {R3, R6, R9, 0, 0, 0, 0, 0, 0, 0};
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUM_PIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
@@ -113,14 +114,14 @@ void debug_print_params() {
   Serial.printf("blu speed(%.6f,%.6f) wave(%.6f,%.6f) bright(%.6f,%.6f)\n", blu.speed_current, blu.speed_target, blu.waveln_current, blu.waveln_target, blu.brightness_current, blu.brightness_target);
 }
 
-// calculate color value for a pixel based on its index, current time, and color parameters
-uint8_t calc_color(color* rgb, int i, uint32_t t) {
+// calculate color value for a pixel based on its index and color parameters
+uint8_t calc_color(color* rgb, int i) {
   double pos;
   if (rgb->waveln_current == 0) {
-    // If wavelength is 0, just use speed to calculate position
-    pos = rgb->speed_current * t / 1000000.0;
+    // If wavelength is 0, just use the phase
+    pos = rgb->phase;
   } else {
-    pos = ((double) i / rgb->waveln_current) + (rgb->speed_current * t / 1000000.0);
+    pos = ((double) i / rgb->waveln_current) + rgb->phase;
   }
 
   // Apply sine wave transformation
@@ -154,7 +155,10 @@ void loop() {
   update_params(&grn);
   update_params(&blu);
 
-  uint32_t t = micros();
+  // Update phases based on speed
+  red.phase += red.speed_current / 60.0; // Adjust divisor to control animation speed
+  grn.phase += grn.speed_current / 60.0;
+  blu.phase += blu.speed_current / 60.0;
 
 #if SERIAL_STREAM_ENABLE
   // Start of LED data frame
@@ -163,9 +167,9 @@ void loop() {
 #endif
 
   for (int i = 0; i < NUM_PIXELS; i++) {
-    uint8_t r = calc_color(&red, i, t);
-    uint8_t g = calc_color(&grn, i, t);
-    uint8_t b = calc_color(&blu, i, t);
+    uint8_t r = calc_color(&red, i);
+    uint8_t g = calc_color(&grn, i);
+    uint8_t b = calc_color(&blu, i);
     pixels.setPixelColor(i, pixels.Color(r,g,b));
 
 #if SERIAL_STREAM_ENABLE
@@ -183,5 +187,9 @@ void loop() {
   pixels.show();
 
   // Also send the current parameters
-  //debug_print_params();
+  // static uint32_t debug_timer = 0;
+  // if (millis() - debug_timer > 100) {
+  //   debug_print_params();
+  //   debug_timer = millis();
+  // }
 }
