@@ -45,9 +45,10 @@
 #define SPEED_CHANGE_THRESHOLD (0.02 * (SPEED_MAX - SPEED_MIN))
 
 // wavelength limits in units leds
-#define WAVELN_MIN 0.0
+#define WAVELN_MIN 2
 #define WAVELN_MAX 400.0
-#define WAVELN_THRESHOLD (0.01 * (WAVELN_MAX - WAVELN_MIN))
+#define WAVELN_THRESHOLD (0.00 * (WAVELN_MAX - WAVELN_MIN))
+#define WAVELN_SMOOTHING 1
 
 #define BRIGHTNESS_MIN 0.0
 #define BRIGHTNESS_MAX 255.0
@@ -58,16 +59,21 @@ struct color {
   int speed_pin;
   int waveln_pin;
   int brightness_pin;
-  // wave parameters
+  // raw wave parameters before filtering
+  double waveln_raw;
+  double speed_raw;
+  double brightness_raw;
+  // wave parameters after filtering
   double speed;
   double waveln;
   double brightness;
-  double phase; // Current phase position
+  // Current phase position
+  double phase;
 };
 
-struct color red = {R1, R4, R7, 0, 0, 0, 0};
-struct color grn = {R2, R5, R8, 0, 0, 0, 0};
-struct color blu = {R3, R6, R9, 0, 0, 0, 0};
+struct color red = {R1, R4, R7, 0, 0, 0, 0, 0};
+struct color grn = {R2, R5, R8, 0, 0, 0, 0, 0};
+struct color blu = {R3, R6, R9, 0, 0, 0, 0, 0};
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUM_PIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
@@ -91,21 +97,23 @@ double apply_smoothing(double target_value, double current_value, double smoothi
 }
 
 // Updates color params based on knobs
-// TODO: for now, set current to target values
 void update_params(color* rgb) {
-  double new_target;
-
   // Update speed
-  new_target = read_knob(rgb->speed_pin) * (SPEED_MAX - SPEED_MIN) + SPEED_MIN;
-  rgb->speed = apply_hysteresis(new_target, rgb->speed, SPEED_CHANGE_THRESHOLD);
+  rgb->speed_raw = read_knob(rgb->speed_pin) * (SPEED_MAX - SPEED_MIN) + SPEED_MIN;
+  rgb->speed = apply_hysteresis(rgb->speed_raw, rgb->speed, SPEED_CHANGE_THRESHOLD);
 
-  // Update wavelength target TODO: should wavelength be an integer?
-  new_target = read_knob(rgb->waveln_pin) * (WAVELN_MAX - WAVELN_MIN) + WAVELN_MIN;
-  rgb->waveln = apply_hysteresis(new_target, rgb->waveln, WAVELN_THRESHOLD);
+  // Update wavelength target
+  // apply smoothing to wavelength changes since they can be very abrupt
+  double new_waveln_raw = read_knob(rgb->waveln_pin) * (WAVELN_MAX - WAVELN_MIN) + WAVELN_MIN;
+  rgb->waveln_raw = rgb->waveln_raw + (new_waveln_raw - rgb->waveln_raw) * WAVELN_SMOOTHING;
+  // rgb->waveln_raw = WAVELN_SMOOTHING * new_waveln_raw + (1 - WAVELN_SMOOTHING) * rgb->waveln_raw;
+  Serial.printf(">wave:%f",rgb->waveln_raw);
+  Serial.println();
+  rgb->waveln = apply_hysteresis(rgb->waveln_raw, rgb->waveln, WAVELN_THRESHOLD);
 
-  // Update brightness target, ensure it is an integer
-  new_target = read_knob(rgb->brightness_pin) * (BRIGHTNESS_MAX - BRIGHTNESS_MIN) + BRIGHTNESS_MIN;
-  rgb->brightness = (int) apply_hysteresis(new_target, rgb->brightness, BRIGHT_CHANGE_THRESHOLD);
+  // Update brightness target
+  rgb->brightness_raw = read_knob(rgb->brightness_pin) * (BRIGHTNESS_MAX - BRIGHTNESS_MIN) + BRIGHTNESS_MIN;
+  rgb->brightness = apply_hysteresis(rgb->brightness_raw, rgb->brightness, BRIGHT_CHANGE_THRESHOLD);
 }
 
 void debug_print_params() {
@@ -152,8 +160,8 @@ void setup() {
 
 void loop() {
   // Update all parameters
-  update_params(&red);
-  update_params(&grn);
+  // update_params(&red);
+  // update_params(&grn);
   update_params(&blu);
 
   // Update phases based on speed
