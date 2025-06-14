@@ -56,8 +56,6 @@ struct color {
   double waveln_target;
   double brightness_current;
   double brightness_target;
-  // phase offset in microseconds
-  uint32_t phase_us;
 };
 
 struct color red = {R1, R4, R7, 0, 0, 0, 0, 0, 0};
@@ -120,9 +118,9 @@ uint8_t calc_color(color* rgb, int i, uint32_t t) {
   double pos;
   if (rgb->waveln_current == 0) {
     // If wavelength is 0, just use speed to calculate position
-    pos = rgb->speed_current * (t - rgb->phase_us) / 1000000.0;
+    pos = rgb->speed_current * t / 1000000.0;
   } else {
-    pos = ((double) i / rgb->waveln_current) + (rgb->speed_current * (t - rgb->phase_us) / 1000000.0);
+    pos = ((double) i / rgb->waveln_current) + (rgb->speed_current * t / 1000000.0);
   }
 
   // Apply sine wave transformation
