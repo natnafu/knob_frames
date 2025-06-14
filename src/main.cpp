@@ -42,7 +42,7 @@
 #define BRIGHTNESS_MIN 0.0
 #define BRIGHTNESS_MAX 255.0
 #define BRIGHT_CHANGE_THRESHOLD (0.01 * (BRIGHTNESS_MAX - BRIGHTNESS_MIN))
-#define BRIGHT_SMOOTHING_FACTOR 0.1
+#define BRIGHT_SMOOTHING_FACTOR 1
 
 struct color {
   // pot knobs
@@ -105,7 +105,7 @@ void update_params(color* rgb) {
   rgb->brightness_target = apply_hysteresis(new_target, rgb->brightness_target, BRIGHT_CHANGE_THRESHOLD);
   rgb->brightness_current = apply_smoothing(rgb->brightness_target, rgb->brightness_current, BRIGHT_SMOOTHING_FACTOR);
   // Ensure brightness is an integer
-  // rgb->brightness_current = (int)rgb->brightness_current;
+  rgb->brightness_current = (int)rgb->brightness_current;
 }
 
 void debug_print_params() {
