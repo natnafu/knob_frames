@@ -10,19 +10,30 @@
 #define LEDS_PER_STRIP 144
 #define NUM_PIXELS (NUM_STRIPS * LEDS_PER_STRIP)
 
-// LED strip connected to this pin
-#define LED_PIN D6
-
-// Knob to Pin mapping
-#define R1 A8  // red speed
-#define R2 A5  // green speed
-#define R3 A2  // blue speed
-#define R4 A9  // red wavelength
-#define R5 A4  // green wavelength
-#define R6 A1  // blue wavelength
-#define R7 A10 // red brightness
-#define R8 A3  // green brightness
-#define R9 A0  // blue brightness
+// Pin mapping for ESP32-S3 and ESP32
+#if defined(CONFIG_IDF_TARGET_ESP32S3)
+  #define LED_PIN D6
+  #define R1 A8  // red speed
+  #define R2 A5  // green speed
+  #define R3 A2  // blue speed
+  #define R4 A9  // red wavelength
+  #define R5 A4  // green wavelength
+  #define R6 A1  // blue wavelength
+  #define R7 A10 // red brightness
+  #define R8 A3  // green brightness
+  #define R9 A0  // blue brightness
+#elif defined(CONFIG_IDF_TARGET_ESP32)
+  #define LED_PIN 2
+  #define R1 13 // red speed
+  #define R4 12 // red wavelength
+  #define R7 14 // red brightness
+  #define R2 27 // green speed
+  #define R5 26 // green wavelength
+  #define R8 35 // green brightness
+  #define R3 33 // blue speed
+  #define R6 32 // blue wavelength
+  #define R9 35 // blue brightness
+#endif
 
 // knob min/max bit values
 #define KNOB_MIN_VAL 0
