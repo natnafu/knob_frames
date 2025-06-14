@@ -2,6 +2,8 @@
 #include <Adafruit_NeoPixel.h>
 #include <math.h>
 
+#define SERIAL_STREAM_ENABLE 0
+
 // Constants for the LED strip
 #define NUM_STRIPS 7
 #define LEDS_PER_STRIP 144
@@ -156,9 +158,11 @@ void loop() {
 
   uint32_t t = micros();
 
+#if SERIAL_STREAM_ENABLE
   // Start of LED data frame
   Serial.println("LED_DATA_START");
   Serial.printf("NUM_STRIPS:%d,LEDS_PER_STRIP:%d\n", NUM_STRIPS, LEDS_PER_STRIP);
+#endif
 
   for (int i = 0; i < NUM_PIXELS; i++) {
     uint8_t r = calc_color(&red, i, t);
@@ -166,12 +170,16 @@ void loop() {
     uint8_t b = calc_color(&blu, i, t);
     pixels.setPixelColor(i, pixels.Color(r,g,b));
 
+#if SERIAL_STREAM_ENABLE
     // Send LED color data over serial
     Serial.printf("LED:%d,%d,%d,%d\n", i, r, g, b);
+#endif
   }
 
+#if SERIAL_STREAM_ENABLE
   // End of LED data frame
   Serial.println("LED_DATA_END");
+#endif
 
   // Update the LEDs
   pixels.show();
