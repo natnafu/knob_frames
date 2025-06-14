@@ -33,7 +33,7 @@ pip install -r test/led_simulator/requirements.txt
 
 ### Serial LED Visualizer
 
-The serial LED visualizer reads LED data directly from the Arduino over a serial connection and displays it in real-time. The script is executable and can be run directly from the terminal:
+The serial LED visualizer reads LED data directly from the Arduino over a serial connection and displays it in real-time. The script is executable and can be run directly from the terminal. Note that while it processes data for all LED strips, it only displays the first strip for clarity:
 
 ```bash
 # Run with Python

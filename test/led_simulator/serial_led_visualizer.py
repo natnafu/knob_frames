@@ -122,33 +122,30 @@ class SerialLEDVisualizer:
         if self.strip_layout is None:
             self.update_layout()
 
-        # Update the display
-        self.led_display.set_array(self.strip_layout)
+        # Update the display - only show the first strip
+        first_strip = self.strip_layout[0] if NUM_STRIPS > 1 else self.strip_layout[0]
+        self.led_display.set_array(first_strip.reshape(1, -1, 3))
         return self.led_display,
 
     def setup_visualization(self):
         """Set up the matplotlib visualization"""
-        # Create figure and axis
-        self.fig, self.ax = plt.subplots(figsize=(12, NUM_STRIPS * 2))
+        # Create figure and axis - only show the first strip
+        self.fig, self.ax = plt.subplots(figsize=(12, 2))
         plt.subplots_adjust(left=0.05, right=0.95, top=0.9, bottom=0.1)
 
         # Create title
-        plt.title('LED Strip Visualizer - Reading from Serial\nClose window to exit')
+        plt.title('LED Strip Visualizer - First Strip Only\nClose window to exit')
 
         # Initialize the layout
         self.update_layout()
 
-        # Create the display
-        self.led_display = self.ax.imshow(self.strip_layout, aspect='auto', interpolation='nearest')
+        # Create the display - only show the first strip
+        first_strip = self.strip_layout[0] if NUM_STRIPS > 1 else self.strip_layout[0]
+        self.led_display = self.ax.imshow(first_strip.reshape(1, -1, 3), aspect='auto', interpolation='nearest')
 
         # Remove axis ticks
         self.ax.set_xticks([])
         self.ax.set_yticks([])
-
-        # Add strip labels if multiple strips
-        if NUM_STRIPS > 1:
-            self.ax.set_yticks(np.arange(NUM_STRIPS))
-            self.ax.set_yticklabels([f"Strip {i+1}" for i in range(NUM_STRIPS)])
 
     def start(self):
         """Start the visualization"""
