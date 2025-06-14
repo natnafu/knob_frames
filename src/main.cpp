@@ -22,17 +22,35 @@
   #define R7 A10 // red brightness
   #define R8 A3  // green brightness
   #define R9 A0  // blue brightness
+  #define PIN_RED_SPEED       R1
+  #define PIN_RED_WAVELN      R4
+  #define PIN_RED_BRIGHTNESS  R7
+  #define PIN_GRN_SPEED       R2
+  #define PIN_GRN_WAVELN      R5
+  #define PIN_GRN_BRIGHTNESS  R8
+  #define PIN_BLU_SPEED       R3
+  #define PIN_BLU_WAVELN      R6
+  #define PIN_BLU_BRIGHTNESS  R9
 #elif defined(CONFIG_IDF_TARGET_ESP32)
   #define LED_PIN 2
-  #define R1 13 // red speed
-  #define R4 12 // red wavelength
-  #define R7 14 // red brightness
-  #define R2 27 // green speed
-  #define R5 26 // green wavelength
-  #define R8 35 // green brightness
-  #define R3 33 // blue speed
-  #define R6 32 // blue wavelength
-  #define R9 35 // blue brightness
+  #define R1 35  // red speed
+  #define R2 34  // red wavelength
+  #define R3 32  // red brightness
+  #define R4 33  // green speed
+  #define R5 27  // green wavelength
+  #define R6 26  // green brightness
+  #define R7 25  // blue speed
+  #define R8 14  // blue wavelength
+  #define R9 12  //
+  #define PIN_RED_SPEED       R1
+  #define PIN_RED_WAVELN      R2
+  #define PIN_RED_BRIGHTNESS  R3
+  #define PIN_GRN_SPEED       R4
+  #define PIN_GRN_WAVELN      R5
+  #define PIN_GRN_BRIGHTNESS  R6
+  #define PIN_BLU_SPEED       R7
+  #define PIN_BLU_WAVELN      R8
+  #define PIN_BLU_BRIGHTNESS  R9
 #endif
 
 // knob min/max bit values
@@ -45,9 +63,9 @@
 #define SPEED_CHANGE_THRESHOLD (0.02 * (SPEED_MAX - SPEED_MIN))
 
 // wavelength limits in units leds
-#define WAVELN_MIN 2
+#define WAVELN_MIN 1
 #define WAVELN_MAX 400.0
-#define WAVELN_THRESHOLD (0.00 * (WAVELN_MAX - WAVELN_MIN))
+#define WAVELN_THRESHOLD (0.01 * (WAVELN_MAX - WAVELN_MIN))
 #define WAVELN_SMOOTHING 1
 
 #define BRIGHTNESS_MIN 0.0
@@ -71,9 +89,9 @@ struct color {
   double phase;
 };
 
-struct color red = {R1, R4, R7, 0, 0, 0, 0, 0};
-struct color grn = {R2, R5, R8, 0, 0, 0, 0, 0};
-struct color blu = {R3, R6, R9, 0, 0, 0, 0, 0};
+struct color red = {PIN_RED_SPEED, PIN_RED_WAVELN, PIN_RED_BRIGHTNESS};
+struct color grn = {PIN_GRN_SPEED, PIN_GRN_WAVELN, PIN_GRN_BRIGHTNESS};
+struct color blu = {PIN_BLU_SPEED, PIN_BLU_WAVELN, PIN_BLU_BRIGHTNESS};
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUM_PIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
@@ -105,10 +123,8 @@ void update_params(color* rgb) {
   // Update wavelength target
   // apply smoothing to wavelength changes since they can be very abrupt
   double new_waveln_raw = read_knob(rgb->waveln_pin) * (WAVELN_MAX - WAVELN_MIN) + WAVELN_MIN;
+  if (new_waveln_raw < WAVELN_THRESHOLD) new_waveln_raw = WAVELN_MIN;
   rgb->waveln_raw = rgb->waveln_raw + (new_waveln_raw - rgb->waveln_raw) * WAVELN_SMOOTHING;
-  // rgb->waveln_raw = WAVELN_SMOOTHING * new_waveln_raw + (1 - WAVELN_SMOOTHING) * rgb->waveln_raw;
-  Serial.printf(">wave:%f",rgb->waveln_raw);
-  Serial.println();
   rgb->waveln = apply_hysteresis(rgb->waveln_raw, rgb->waveln, WAVELN_THRESHOLD);
 
   // Update brightness target
@@ -160,8 +176,8 @@ void setup() {
 
 void loop() {
   // Update all parameters
-  // update_params(&red);
-  // update_params(&grn);
+  update_params(&red);
+  update_params(&grn);
   update_params(&blu);
 
   // Update phases based on speed
