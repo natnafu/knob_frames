@@ -3,6 +3,7 @@
 #include <math.h>
 
 #define SERIAL_STREAM_ENABLE 0
+#define ENABLE_SERIAL_DEBUG 0
 
 // Constants for the LED strip
 #define NUM_STRIPS 7
@@ -29,20 +30,17 @@
 
 // speed limits in units led/s
 #define SPEED_MIN 0.0
-#define SPEED_MAX 1
+#define SPEED_MAX 1.0
 #define SPEED_CHANGE_THRESHOLD (0.02 * (SPEED_MAX - SPEED_MIN))
-#define SPEED_SMOOTHING_FACTOR 1
 
 // wavelength limits in units leds
 #define WAVELN_MIN 0.0
 #define WAVELN_MAX 400.0
-#define WAVELN_THRESHOLD 3.0 // only change by whole number of leds
-#define WAVELN_SMOOTHING_FACTOR 1
+#define WAVELN_THRESHOLD (0.01 * (WAVELN_MAX - WAVELN_MIN))
 
 #define BRIGHTNESS_MIN 0.0
 #define BRIGHTNESS_MAX 255.0
 #define BRIGHT_CHANGE_THRESHOLD (0.01 * (BRIGHTNESS_MAX - BRIGHTNESS_MIN))
-#define BRIGHT_SMOOTHING_FACTOR 1
 
 struct color {
   // pot knobs
@@ -50,18 +48,15 @@ struct color {
   int waveln_pin;
   int brightness_pin;
   // wave parameters
-  double speed_current;
-  double speed_target;
-  double waveln_current;
-  double waveln_target;
-  double brightness_current;
-  double brightness_target;
+  double speed;
+  double waveln;
+  double brightness;
   double phase; // Current phase position
 };
 
-struct color red = {R1, R4, R7, 0, 0, 0, 0, 0, 0, 0};
-struct color grn = {R2, R5, R8, 0, 0, 0, 0, 0, 0, 0};
-struct color blu = {R3, R6, R9, 0, 0, 0, 0, 0, 0, 0};
+struct color red = {R1, R4, R7, 0, 0, 0, 0};
+struct color grn = {R2, R5, R8, 0, 0, 0, 0};
+struct color blu = {R3, R6, R9, 0, 0, 0, 0};
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUM_PIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
@@ -91,43 +86,38 @@ void update_params(color* rgb) {
 
   // Update speed
   new_target = read_knob(rgb->speed_pin) * (SPEED_MAX - SPEED_MIN) + SPEED_MIN;
-  rgb->speed_target = apply_hysteresis(new_target, rgb->speed_target, SPEED_CHANGE_THRESHOLD);
-  rgb->speed_current = apply_smoothing(rgb->speed_target, rgb->speed_current, SPEED_SMOOTHING_FACTOR);
+  rgb->speed = apply_hysteresis(new_target, rgb->speed, SPEED_CHANGE_THRESHOLD);
 
   // Update wavelength target TODO: should wavelength be an integer?
   new_target = read_knob(rgb->waveln_pin) * (WAVELN_MAX - WAVELN_MIN) + WAVELN_MIN;
-  rgb->waveln_target = apply_hysteresis(new_target, rgb->waveln_target, WAVELN_THRESHOLD);
-  rgb->waveln_current = apply_smoothing(rgb->waveln_target, rgb->waveln_current, WAVELN_SMOOTHING_FACTOR);
+  rgb->waveln = apply_hysteresis(new_target, rgb->waveln, WAVELN_THRESHOLD);
 
-  // Update brightness target
+  // Update brightness target, ensure it is an integer
   new_target = read_knob(rgb->brightness_pin) * (BRIGHTNESS_MAX - BRIGHTNESS_MIN) + BRIGHTNESS_MIN;
-  rgb->brightness_target = apply_hysteresis(new_target, rgb->brightness_target, BRIGHT_CHANGE_THRESHOLD);
-  rgb->brightness_current = apply_smoothing(rgb->brightness_target, rgb->brightness_current, BRIGHT_SMOOTHING_FACTOR);
-  // Ensure brightness is an integer
-  rgb->brightness_current = (int)rgb->brightness_current;
+  rgb->brightness = (int) apply_hysteresis(new_target, rgb->brightness, BRIGHT_CHANGE_THRESHOLD);
 }
 
 void debug_print_params() {
   Serial.println("DEBUG:");
-  Serial.printf("red speed(%.6f,%.6f) wave(%.6f,%.6f) bright(%.6f,%.6f)\n", red.speed_current, red.speed_target, red.waveln_current, red.waveln_target, red.brightness_current, red.brightness_target);
-  Serial.printf("grn speed(%.6f,%.6f) wave(%.6f,%.6f) bright(%.6f,%.6f)\n", grn.speed_current, grn.speed_target, grn.waveln_current, grn.waveln_target, grn.brightness_current, grn.brightness_target);
-  Serial.printf("blu speed(%.6f,%.6f) wave(%.6f,%.6f) bright(%.6f,%.6f)\n", blu.speed_current, blu.speed_target, blu.waveln_current, blu.waveln_target, blu.brightness_current, blu.brightness_target);
+  Serial.printf("red speed(%.6f) wave(%.6f) bright(%.6f)\n", red.speed ,red.waveln, red.brightness);
+  Serial.printf("grn speed(%.6f) wave(%.6f) bright(%.6f)\n", grn.speed ,grn.waveln, grn.brightness);
+  Serial.printf("blu speed(%.6f) wave(%.6f) bright(%.6f)\n", blu.speed ,blu.waveln, blu.brightness);
 }
 
 // calculate color value for a pixel based on its index and color parameters
 uint8_t calc_color(color* rgb, int i) {
   double pos;
-  if (rgb->waveln_current == 0) {
+  if (rgb->waveln == 0) {
     // If wavelength is 0, just use the phase
     pos = rgb->phase;
   } else {
-    pos = ((double) i / rgb->waveln_current) + rgb->phase;
+    pos = ((double) i / rgb->waveln) + rgb->phase;
   }
 
   // Apply sine wave transformation
   pos = 0.5 * (1.0 + sin(2 * PI * pos));
   // Apply brightness
-  pos = pos * rgb->brightness_current;
+  pos = pos * rgb->brightness;
 
   return pos;
 }
@@ -156,9 +146,9 @@ void loop() {
   update_params(&blu);
 
   // Update phases based on speed
-  red.phase += red.speed_current / 60.0; // Adjust divisor to control animation speed
-  grn.phase += grn.speed_current / 60.0;
-  blu.phase += blu.speed_current / 60.0;
+  red.phase += red.speed / 60.0; // Adjust divisor to control animation speed
+  grn.phase += grn.speed / 60.0;
+  blu.phase += blu.speed / 60.0;
 
 #if SERIAL_STREAM_ENABLE
   // Start of LED data frame
@@ -186,10 +176,12 @@ void loop() {
   // Update the LEDs
   pixels.show();
 
+#if ENABLE_SERIAL_DEBUG
   // Also send the current parameters
-  // static uint32_t debug_timer = 0;
-  // if (millis() - debug_timer > 100) {
-  //   debug_print_params();
-  //   debug_timer = millis();
-  // }
+  static uint32_t debug_timer = 0;
+  if (millis() - debug_timer > 100) {
+    debug_print_params();
+    debug_timer = millis();
+  }
+#endif
 }
