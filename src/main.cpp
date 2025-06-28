@@ -2,8 +2,8 @@
 #include <Adafruit_NeoPixel.h>
 #include <math.h>
 
-#define SERIAL_STREAM_ENABLE 0
-#define ENABLE_SERIAL_DEBUG 0
+#define SERIAL_STREAM_ENABLE 0 // enable serial stream for LED data
+#define ENABLE_SERIAL_DEBUG 0 // print out debug parameters to serial
 
 // Constants for the LED strip
 #define NUM_STRIPS 7
@@ -12,7 +12,8 @@
 
 // Pin mapping for ESP32-S3 and ESP32
 #if defined(CONFIG_IDF_TARGET_ESP32S3)
-  #define LED_PIN D6
+  #define LED_PIN D6 // WS2812b data pin
+  #define INVERT_KNOB 1 // set to 1 to invert knob direction
   #define R1 A8  // red speed
   #define R2 A5  // green speed
   #define R3 A2  // blue speed
@@ -32,7 +33,8 @@
   #define PIN_BLU_WAVELN      R6
   #define PIN_BLU_BRIGHTNESS  R9
 #elif defined(CONFIG_IDF_TARGET_ESP32)
-  #define LED_PIN 2
+  #define LED_PIN 4 // WS2812b data pin
+  #define INVERT_KNOB 0 // set to 1 to invert knob direction
   #define R1 35  // red speed
   #define R2 34  // red wavelength
   #define R3 32  // red brightness
@@ -41,7 +43,7 @@
   #define R6 26  // green brightness
   #define R7 25  // blue speed
   #define R8 14  // blue wavelength
-  #define R9 12  //
+  #define R9 13  // blue brightness
   #define PIN_RED_SPEED       R1
   #define PIN_RED_WAVELN      R2
   #define PIN_RED_BRIGHTNESS  R3
@@ -96,9 +98,12 @@ struct color blu = {PIN_BLU_SPEED, PIN_BLU_WAVELN, PIN_BLU_BRIGHTNESS};
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUM_PIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 // Read potentiometer value from a knob, returns a value between 0.0 and 1.0
-// invert ADC value so value increases when turned clockwise
 double read_knob(int knob_pin) {
+#if INVERT_KNOB
   return (KNOB_MAX_VAL - analogRead(knob_pin)) / (double)(KNOB_MAX_VAL);
+#else
+  return (analogRead(knob_pin)) / (double)(KNOB_MAX_VAL);
+#endif
 }
 
 // function to apply hysteresis to a value
@@ -158,7 +163,7 @@ uint8_t calc_color(color* rgb, int i) {
 }
 
 void setup() {
-  Serial.begin(921600);
+  Serial.begin(115200);
 
   pinMode(R1, INPUT);
   pinMode(R2, INPUT);
