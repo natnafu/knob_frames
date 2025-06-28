@@ -61,7 +61,7 @@
 
 // speed limits in units led/s
 #define SPEED_MIN 0.0
-#define SPEED_MAX 1.0
+#define SPEED_MAX 4.0
 #define SPEED_CHANGE_THRESHOLD (0.02 * (SPEED_MAX - SPEED_MIN))
 
 // wavelength limits in units leds
