@@ -61,12 +61,12 @@
 
 // speed limits in units led/s
 #define SPEED_MIN 0.0
-#define SPEED_MAX 4.0
+#define SPEED_MAX 1.0
 #define SPEED_CHANGE_THRESHOLD (0.02 * (SPEED_MAX - SPEED_MIN))
 
 // wavelength limits in units leds
 #define WAVELN_MIN 1
-#define WAVELN_MAX 400.0
+#define WAVELN_MAX 1000.0
 #define WAVELN_THRESHOLD (0.01 * (WAVELN_MAX - WAVELN_MIN))
 #define WAVELN_SMOOTHING 1
 
@@ -151,7 +151,7 @@ uint8_t calc_color(color* rgb, int i) {
     // If wavelength is 0, just use the phase
     pos = rgb->phase;
   } else {
-    pos = ((double) i / rgb->waveln) + rgb->phase;
+    pos = ((double) i / rgb->waveln) - rgb->phase;
   }
 
   // Apply sine wave transformation
