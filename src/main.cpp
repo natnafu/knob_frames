@@ -6,7 +6,7 @@
 #define ENABLE_SERIAL_DEBUG 0 // print out debug parameters to serial
 
 // Constants for the LED strip
-#define NUM_STRIPS 7
+#define NUM_STRIPS 8
 #define LEDS_PER_STRIP 144
 #define NUM_PIXELS (NUM_STRIPS * LEDS_PER_STRIP)
 
